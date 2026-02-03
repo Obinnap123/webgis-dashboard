@@ -3,28 +3,44 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { requireAuth } from "@/lib/auth-utils";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TicketWithUser } from "@/types";
-import { Plus, ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { NewTicketDialog } from "@/components/tickets/new-ticket-dialog";
 
-const priorityColors: Record<string, string> = {
-  LOW: "bg-blue-100 text-blue-800",
-  MEDIUM: "bg-yellow-100 text-yellow-800",
-  HIGH: "bg-orange-100 text-orange-800",
-  URGENT: "bg-red-100 text-red-800",
+// Helper for Badge variants based on status
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case "OPEN": return "destructive";
+    case "IN_PROGRESS": return "secondary"; // or a custom warning variant if available
+    case "RESOLVED": return "default"; // green/primary usually
+    case "CLOSED": return "outline";
+    default: return "secondary";
+  }
 };
 
-const statusColors: Record<string, string> = {
-  OPEN: "bg-red-100 text-red-800",
-  IN_PROGRESS: "bg-yellow-100 text-yellow-800",
-  RESOLVED: "bg-green-100 text-green-800",
-  CLOSED: "bg-gray-100 text-gray-800",
+const getPriorityVariant = (priority: string) => {
+  switch (priority) {
+    case "URGENT": return "destructive";
+    case "HIGH": return "destructive"; // or separate variant
+    case "MEDIUM": return "secondary";
+    case "LOW": return "outline";
+    default: return "outline";
+  }
 };
+
 
 export default function TicketsPage() {
   const router = useRouter();
@@ -60,31 +76,27 @@ export default function TicketsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tickets</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Tickets</h1>
+            <p className="text-muted-foreground mt-1">
               Manage service requests and tickets
             </p>
           </div>
-          <Link href="/tickets/new">
-            <Button variant="primary">
-              <Plus size={20} className="mr-2" />
-              New Ticket
-            </Button>
-          </Link>
+          <NewTicketDialog />
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Filter Tickets</CardTitle>
+            <CardDescription>Refine your search by status or priority</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
                 label="Status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(value) => setStatus(value)}
                 options={[
                   { value: "", label: "All Status" },
                   { value: "OPEN", label: "Open" },
@@ -96,7 +108,7 @@ export default function TicketsPage() {
               <Select
                 label="Priority"
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
+                onChange={(value) => setPriority(value)}
                 options={[
                   { value: "", label: "All Priority" },
                   { value: "LOW", label: "Low" },
@@ -111,74 +123,68 @@ export default function TicketsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Tickets ({tickets.length})</CardTitle>
+            <CardTitle>All Tickets</CardTitle>
+            <CardDescription>
+              Testing {tickets.length} total tickets
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">Loading tickets...</div>
+              <div className="flex justify-center items-center py-8 text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading tickets...
+              </div>
             ) : tickets.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No tickets found</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No tickets found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-gray-200">
-                    <tr>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Title
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Status
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Priority
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Created By
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Assigned To
-                      </th>
-                      <th className="text-left py-3 px-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Created By</TableHead>
+                      <TableHead>Assigned To</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {tickets.map((ticket) => (
-                      <tr
-                        key={ticket.id}
-                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-3 px-4 font-medium text-gray-900">
+                      <TableRow key={ticket.id}>
+                        <TableCell className="font-medium">
                           {ticket.title}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={statusColors[ticket.status]}>
-                            {ticket.status}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(ticket.status) as any}>
+                            {ticket.status.replace("_", " ")}
                           </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={priorityColors[ticket.priority]}>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getPriorityVariant(ticket.priority) as any}>
                             {ticket.priority}
                           </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {ticket.createdBy.name || ticket.createdBy.email}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {ticket.assignedTo
                             ? ticket.assignedTo.name || ticket.assignedTo.email
                             : "Unassigned"}
-                        </td>
-                        <td className="py-3 px-4 text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Link href={`/tickets/${ticket.id}`}>
-                            <ChevronRight size={20} className="text-gray-400" />
+                            <Button variant="ghost" size="icon">
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
                           </Link>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

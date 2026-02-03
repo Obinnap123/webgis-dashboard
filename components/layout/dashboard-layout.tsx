@@ -12,7 +12,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SessionProvider>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-muted/30">
         {/* Sidebar */}
         <Sidebar />
 
@@ -22,8 +22,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <Header />
 
           {/* Content area */}
-          <main className="flex-1 overflow-auto">
-            <div className="p-6">{children}</div>
+          <main className="flex-1 overflow-auto bg-muted/30">
+            <div className="p-6 w-full">{children}</div>
           </main>
         </div>
       </div>

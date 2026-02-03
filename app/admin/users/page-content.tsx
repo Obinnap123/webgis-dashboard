@@ -108,7 +108,7 @@ export function UsersPageContent() {
             </p>
           </div>
           <Button
-            variant="primary"
+            variant="default"
             onClick={() => router.push("/admin/users/new")}
           >
             <Plus size={20} className="mr-2" />

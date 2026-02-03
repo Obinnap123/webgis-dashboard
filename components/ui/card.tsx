@@ -1,5 +1,5 @@
 import React from "react";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -8,9 +8,9 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Card({ children, className, ...props }: CardProps) {
   return (
     <div
-      className={clsx(
-        "rounded-lg border border-gray-200 bg-white p-6 shadow-sm",
-        className,
+      className={cn(
+        "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
+        className
       )}
       {...props}
     >
@@ -21,7 +21,7 @@ export function Card({ children, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className, ...props }: CardProps) {
   return (
-    <div className={clsx("mb-4 border-b pb-4", className)} {...props}>
+    <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props}>
       {children}
     </div>
   );
@@ -30,7 +30,7 @@ export function CardHeader({ children, className, ...props }: CardProps) {
 export function CardTitle({ children, className, ...props }: CardProps) {
   return (
     <h3
-      className={clsx("text-lg font-semibold text-gray-900", className)}
+      className={cn("font-semibold leading-none tracking-tight", className)}
       {...props}
     >
       {children}
@@ -38,9 +38,28 @@ export function CardTitle({ children, className, ...props }: CardProps) {
   );
 }
 
+export function CardDescription({ children, className, ...props }: CardProps) {
+  return (
+    <p
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    >
+      {children}
+    </p>
+  );
+}
+
 export function CardContent({ children, className, ...props }: CardProps) {
   return (
-    <div className={clsx("", className)} {...props}>
+    <div className={cn("p-6 pt-0", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardFooter({ children, className, ...props }: CardProps) {
+  return (
+    <div className={cn("flex items-center p-6 pt-0", className)} {...props}>
       {children}
     </div>
   );

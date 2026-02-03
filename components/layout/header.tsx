@@ -1,27 +1,49 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function Header() {
   const { data: session } = useSession();
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500">Welcome back!</p>
+    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex items-center gap-4 flex-1">
+          {/* Search Bar - Hidden on small mobile, visible on desktop */}
+          <div className="relative w-full max-w-md hidden md:block">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="w-full">
+              <Input
+                placeholder="Search..."
+                className="pl-8 h-9 bg-muted/50 border-none focus-visible:bg-background"
+              // Remove label/error wrapper logic if we want pure input, 
+              // but since we kept the wrapper in Input component, we pass no label/error.
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-900">
-              {session?.user?.name || session?.user?.email}
-            </p>
-            <p className="text-xs text-gray-500">
-              {(session?.user as any)?.role}
-            </p>
+          <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive border-2 border-background" />
+          </Button>
+
+          <div className="flex items-center gap-3 pl-4 border-l border-border">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-foreground leading-none">
+                {session?.user?.name || session?.user?.email}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 capitalize">
+                {(session?.user as any)?.role?.toLowerCase() || 'User'}
+              </p>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+              {session?.user?.email?.charAt(0).toUpperCase()}
+            </div>
           </div>
         </div>
       </div>

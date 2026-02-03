@@ -1,16 +1,25 @@
 import React from "react";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
+  variant?: "default" | "secondary" | "destructive" | "outline";
 }
 
-export function Badge({ children, className, ...props }: BadgeProps) {
+export function Badge({ children, className, variant = "default", ...props }: BadgeProps) {
+  const variants = {
+    default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+    secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+    destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+    outline: "text-foreground",
+  };
+
   return (
     <span
-      className={clsx(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-        className,
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        variants[variant],
+        className
       )}
       {...props}
     >

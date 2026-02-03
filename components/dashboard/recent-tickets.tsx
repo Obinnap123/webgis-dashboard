@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TicketWithUser } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 
 const priorityColors: Record<string, string> = {
@@ -49,43 +50,41 @@ export function RecentTickets() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Recent Tickets
-          <Link href="/tickets" className="text-blue-600 hover:text-blue-700">
-            <ChevronRight size={20} />
-          </Link>
-        </CardTitle>
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="space-y-1">
+          <CardTitle>Recent Tickets</CardTitle>
+          <CardDescription>Latest support requests</CardDescription>
+        </div>
+        <Link href="/tickets" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          View all <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {tickets.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No tickets yet</p>
+            <div className="text-center py-6 text-muted-foreground">No recent tickets</div>
           ) : (
             tickets.map((ticket) => (
-              <Link
+              <div
                 key={ticket.id}
-                href={`/tickets/${ticket.id}`}
-                className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
+                className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-accent hover:text-accent-foreground transition-colors"
               >
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 hover:text-blue-600">
+                <div className="grid gap-1">
+                  <Link href={`/tickets/${ticket.id}`} className="font-semibold hover:underline">
                     {ticket.title}
-                  </h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Created by {ticket.createdBy.name || ticket.createdBy.email}
+                  </Link>
+                  <p className="text-sm text-muted-foreground">
+                    by {ticket.createdBy.name || ticket.createdBy.email}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Badge className={priorityColors[ticket.priority]}>
-                    {ticket.priority}
-                  </Badge>
-                  <Badge className={statusColors[ticket.status]}>
-                    {ticket.status}
+                <div className="flex items-center gap-2">
+                  {/* Simplified badging for recent list - maybe just status */}
+                  <Badge variant="outline" className="capitalize">
+                    {ticket.status.toLowerCase().replace("_", " ")}
                   </Badge>
                 </div>
-              </Link>
+              </div>
             ))
           )}
         </div>

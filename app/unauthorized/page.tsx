@@ -14,7 +14,7 @@ export default function UnauthorizedPage() {
           administrator if you believe this is a mistake.
         </p>
         <Link href="/dashboard">
-          <Button variant="primary" className="w-full">
+          <Button variant="default" className="w-full">
             Go to Dashboard
           </Button>
         </Link>

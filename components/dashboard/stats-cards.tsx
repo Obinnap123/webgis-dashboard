@@ -76,22 +76,18 @@ export function DashboardStatsCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
           <Card key={stat.label}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
-                </div>
-                <div className={`p-3 rounded-lg ${stat.color}`}>
-                  <Icon size={24} />
-                </div>
+            <CardContent className="p-6 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </div>
+              <div className={`p-2 rounded-full bg-primary/10 text-primary`}>
+                <Icon className="h-4 w-4" />
               </div>
             </CardContent>
           </Card>

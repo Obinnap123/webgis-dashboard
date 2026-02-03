@@ -241,7 +241,7 @@ export default function TicketDetailPage() {
                   </Badge>
                   <Select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    onChange={(value) => setStatus(value)}
                     options={[
                       { value: "OPEN", label: "Open" },
                       { value: "IN_PROGRESS", label: "In Progress" },
@@ -261,8 +261,8 @@ export default function TicketDetailPage() {
                   </Badge>
                   <Select
                     value={priority}
-                    onChange={(e) =>
-                      setPriority(e.target.value)
+                    onChange={(value) =>
+                      setPriority(value)
                     }
                     options={[
                       { value: "LOW", label: "Low" },
@@ -276,7 +276,7 @@ export default function TicketDetailPage() {
 
                 <div className="flex gap-2">
                   <Button
-                    variant="primary"
+                    variant="default"
                     size="sm"
                     isLoading={isUpdating}
                     onClick={handleUpdate}
@@ -285,7 +285,7 @@ export default function TicketDetailPage() {
                     Save Changes
                   </Button>
                   <Button
-                    variant="danger"
+                    variant="destructive"
                     size="sm"
                     onClick={handleDelete}
                     disabled={isUpdating}

@@ -110,7 +110,7 @@ export default function NewUserPage() {
               <Select
                 label="Role"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(value) => setRole(value)}
                 options={[
                   { value: "STAFF", label: "Staff" },
                   { value: "ADMIN", label: "Admin" },
@@ -120,7 +120,7 @@ export default function NewUserPage() {
               <div className="flex gap-3 pt-4">
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="default"
                   isLoading={isLoading}
                   disabled={!email || !password}
                 >

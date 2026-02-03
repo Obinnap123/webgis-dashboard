@@ -11,8 +11,8 @@ export default async function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
             Overview of your service tickets and system statistics
           </p>
         </div>
@@ -29,49 +29,34 @@ export default async function DashboardPage() {
               <CardTitle>System Health</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Response Time
-                    </span>
-                    <span className="text-sm text-green-600">Good</span>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Response Time</span>
+                    <span className="text-emerald-500 font-medium">Good</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "95%" }}
-                    ></div>
+                  <div className="h-2 w-full rounded-full bg-secondary">
+                    <div className="h-2 w-[95%] rounded-full bg-emerald-500" />
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Database
-                    </span>
-                    <span className="text-sm text-green-600">Healthy</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Database</span>
+                    <span className="text-emerald-500 font-medium">Healthy</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "98%" }}
-                    ></div>
+                  <div className="h-2 w-full rounded-full bg-secondary">
+                    <div className="h-2 w-[98%] rounded-full bg-emerald-500" />
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      API Uptime
-                    </span>
-                    <span className="text-sm text-green-600">99.9%</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">API Uptime</span>
+                    <span className="text-emerald-500 font-medium">99.9%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "99.9%" }}
-                    ></div>
+                  <div className="h-2 w-full rounded-full bg-secondary">
+                    <div className="h-2 w-[99.9%] rounded-full bg-emerald-500" />
                   </div>
                 </div>
               </div>
