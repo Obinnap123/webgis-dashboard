@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -161,7 +162,7 @@ export function UsersPageContent() {
                           {user.name || "-"}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Badge
                               className={
                                 user.role === "ADMIN"
@@ -171,21 +172,21 @@ export function UsersPageContent() {
                             >
                               {user.role}
                             </Badge>
-                            <select
+                            <Select
                               value={user.role}
-                              onChange={(e) =>
+                              onChange={(value) =>
                                 handleChangeRole(
                                   user.id,
-                                  e.target.value as "ADMIN" | "STAFF",
+                                  value as "ADMIN" | "STAFF",
                                 )
                               }
                               disabled={updatingUserId === user.id}
-                              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:border-gray-400 disabled:opacity-50 cursor-pointer"
-                            >
-                              <option value="">Change role...</option>
-                              <option value="ADMIN">Make Admin</option>
-                              <option value="STAFF">Make Staff</option>
-                            </select>
+                              options={[
+                                { value: "ADMIN", label: "👑 Admin" },
+                                { value: "STAFF", label: "👤 Staff" },
+                              ]}
+                              className="w-32"
+                            />
                           </div>
                         </td>
                         <td className="py-3 px-4">
