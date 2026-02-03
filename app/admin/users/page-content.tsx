@@ -182,7 +182,7 @@ export function UsersPageContent() {
                               onChange={(e) =>
                                 handleChangeRole(
                                   user.id,
-                                  e.target.value as "ADMIN" | "STAFF"
+                                  e.target.value as "ADMIN" | "STAFF",
                                 )
                               }
                               disabled={updatingUserId === user.id}
