@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,16 +22,11 @@ export function UsersPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const { data: session } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (session?.user && (session.user as any).role !== "ADMIN") {
-      router.push("/dashboard");
-    } else {
-      fetchUsers();
-    }
-  }, [session, router]);
+    fetchUsers();
+  }, []);
 
   async function fetchUsers() {
     try {
