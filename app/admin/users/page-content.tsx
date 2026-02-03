@@ -22,6 +22,7 @@ export function UsersPageContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -48,6 +49,30 @@ export function UsersPageContent() {
       setError("Failed to load users");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleChangeRole(userId: string, newRole: "ADMIN" | "STAFF") {
+    setUpdatingUserId(userId);
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUsers(users.map((u) => (u.id === userId ? data.data : u)));
+      } else {
+        setError(data.error || "Failed to update user role");
+      }
+    } catch (err) {
+      console.error("Failed to update user role:", err);
+      setError("Failed to update user role");
+    } finally {
+      setUpdatingUserId(null);
     }
   }
 
@@ -142,15 +167,32 @@ export function UsersPageContent() {
                           {user.name || "-"}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge
-                            className={
-                              user.role === "ADMIN"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }
-                          >
-                            {user.role}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                user.role === "ADMIN"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }
+                            >
+                              {user.role}
+                            </Badge>
+                            <select
+                              value={user.role}
+                              onChange={(e) =>
+                                handleChangeRole(
+                                  user.id,
+                                  e.target.value as "ADMIN" | "STAFF"
+                                )
+                              }
+                              disabled={updatingUserId === user.id}
+                              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:border-gray-400 disabled:opacity-50 cursor-pointer"
+                            >
+                              <option value="">Change role...</option>
+                              <option value="ADMIN">Make Admin</option>
+                              <option value="STAFF">Make Staff</option>
+                            </select>
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <Badge
