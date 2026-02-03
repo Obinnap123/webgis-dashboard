@@ -95,16 +95,17 @@ export function UsersPageContent() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-            <p className="text-gray-600 mt-2">
-              Manage team members and their roles
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Users</h1>
+            <p className="text-sm text-gray-500 mt-1 md:text-gray-600 md:mt-2">
+              Manage team members
             </p>
           </div>
           <Button
             variant="default"
             onClick={() => router.push("/admin/users/new")}
+            className="shrink-0"
           >
             <Plus size={20} className="mr-2" />
             Add User
