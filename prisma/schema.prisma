@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String?
+  password      String
+  role          UserRole   @default(STAFF)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  ticketsCreated Ticket[]   @relation("CreatedBy")
+  ticketsAssigned Ticket[]  @relation("AssignedTo")
+  activities    Activity[]
+  
+  @@index([email])
+  @@index([role])
+}
+
+model Ticket {
+  id            String     @id @default(cuid())
+  title         String
+  description   String
+  status        TicketStatus @default(OPEN)
+  priority      TicketPriority @default(MEDIUM)
+  createdById   String
+  assignedToId  String?
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  resolvedAt    DateTime?
+  
+  createdBy     User       @relation("CreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  assignedTo    User?      @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  activities    Activity[]
+  
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model Activity {
+  id            String     @id @default(cuid())
+  ticketId      String
+  userId        String
+  action        String     // "created", "assigned", "status_changed", "commented"
+  previousValue String?
+  newValue      String?
+  createdAt     DateTime   @default(now())
+  
+  ticket        Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+}
