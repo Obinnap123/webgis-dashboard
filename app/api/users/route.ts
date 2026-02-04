@@ -14,19 +14,67 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const [users, ticketGroups] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.ticket.groupBy({
+        by: ["assignedToId", "status"],
+        _count: { _all: true },
+        where: { assignedToId: { not: null } },
+      }),
+    ]);
 
-    return NextResponse.json({ success: true, data: users });
+    const countsMap = new Map<
+      string,
+      { total: number; OPEN: number; IN_PROGRESS: number; RESOLVED: number; CLOSED: number }
+    >();
+
+    for (const group of ticketGroups) {
+      if (!group.assignedToId) continue;
+      const entry = countsMap.get(group.assignedToId) || {
+        total: 0,
+        OPEN: 0,
+        IN_PROGRESS: 0,
+        RESOLVED: 0,
+        CLOSED: 0,
+      };
+      const count = group._count._all;
+      entry.total += count;
+      entry[group.status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"] = count;
+      countsMap.set(group.assignedToId, entry);
+    }
+
+    const usersWithCounts = users.map(
+      (user: {
+        id: string;
+        email: string;
+        name: string | null;
+        role: string;
+        isActive: boolean;
+        createdAt: Date;
+      }) => ({
+      ...user,
+      ticketCounts:
+        countsMap.get(user.id) || {
+          total: 0,
+          OPEN: 0,
+          IN_PROGRESS: 0,
+          RESOLVED: 0,
+          CLOSED: 0,
+        },
+      }),
+    );
+
+    return NextResponse.json({ success: true, data: usersWithCounts });
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(

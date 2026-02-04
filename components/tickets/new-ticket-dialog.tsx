@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -16,14 +17,48 @@ import {
 import { CreateTicketInput } from "@/types";
 import { Plus } from "lucide-react";
 
+interface UserOption {
+    id: string;
+    name: string | null;
+    email: string;
+    isActive: boolean;
+}
+
 export function NewTicketDialog() {
     const router = useRouter();
+    const { data: session } = useSession();
+    const isAdmin = (session?.user as any)?.role === "ADMIN";
     const [open, setOpen] = useState(false);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [priority, setPriority] = useState<string>("MEDIUM");
+    const [assignedToId, setAssignedToId] = useState<string>("");
+    const [users, setUsers] = useState<UserOption[]>([]);
+    const [usersError, setUsersError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+
+    useEffect(() => {
+        if (!open || !isAdmin) return;
+
+        async function loadUsers() {
+            try {
+                const response = await fetch("/api/users");
+                const data = await response.json();
+                if (data.success) {
+                    setUsers(data.data.filter((user: UserOption) => user.isActive));
+                    setUsersError("");
+                } else {
+                    setUsersError(data.error || "Unable to load users");
+                }
+            } catch (err) {
+                console.error("Failed to fetch users:", err);
+                setUsersError("Unable to load users");
+            }
+        }
+
+        loadUsers();
+    }, [open, isAdmin]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -35,6 +70,7 @@ export function NewTicketDialog() {
                 title,
                 description,
                 priority: priority as any,
+                assignedToId: assignedToId || null,
             };
 
             const response = await fetch("/api/tickets", {
@@ -71,6 +107,7 @@ export function NewTicketDialog() {
         setTitle("");
         setDescription("");
         setPriority("MEDIUM");
+        setAssignedToId("");
         setError("");
     }
 
@@ -82,7 +119,7 @@ export function NewTicketDialog() {
                     New Ticket
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Create New Ticket</DialogTitle>
                     <DialogDescription>
@@ -110,7 +147,7 @@ export function NewTicketDialog() {
                             Description
                         </label>
                         <textarea
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Detailed explanation..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
@@ -129,6 +166,29 @@ export function NewTicketDialog() {
                             { value: "URGENT", label: "Urgent" },
                         ]}
                     />
+
+                    {isAdmin && (
+                        <div>
+                            <div className="text-sm font-medium leading-none mb-2">
+                                Assign To
+                            </div>
+                            {usersError ? (
+                                <p className="text-sm text-destructive">{usersError}</p>
+                            ) : (
+                                <Select
+                                    value={assignedToId}
+                                    onChange={(value) => setAssignedToId(value)}
+                                    options={[
+                                        { value: "", label: "Unassigned" },
+                                        ...users.map((user) => ({
+                                            value: user.id,
+                                            label: user.name || user.email,
+                                        })),
+                                    ]}
+                                />
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button

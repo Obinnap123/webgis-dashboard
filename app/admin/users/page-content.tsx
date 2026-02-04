@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
 
 interface User {
@@ -16,6 +26,13 @@ interface User {
   role: "ADMIN" | "STAFF";
   isActive: boolean;
   createdAt: string;
+  ticketCounts: {
+    total: number;
+    OPEN: number;
+    IN_PROGRESS: number;
+    RESOLVED: number;
+    CLOSED: number;
+  };
 }
 
 export function UsersPageContent() {
@@ -23,7 +40,13 @@ export function UsersPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const router = useRouter();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createRole, setCreateRole] = useState<"ADMIN" | "STAFF">("STAFF");
+  const [createError, setCreateError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -92,6 +115,49 @@ export function UsersPageContent() {
     }
   }
 
+  function resetCreateForm() {
+    setCreateEmail("");
+    setCreateName("");
+    setCreatePassword("");
+    setCreateRole("STAFF");
+    setCreateError("");
+  }
+
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault();
+    setCreateError("");
+    setIsCreating(true);
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: createEmail,
+          name: createName || null,
+          password: createPassword,
+          role: createRole,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setCreateError(data.error || "Failed to create user");
+        return;
+      }
+
+      setIsCreateOpen(false);
+      resetCreateForm();
+      fetchUsers();
+    } catch (err) {
+      console.error("Failed to create user:", err);
+      setCreateError("Failed to create user");
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -102,14 +168,91 @@ export function UsersPageContent() {
               Manage team members
             </p>
           </div>
-          <Button
-            variant="default"
-            onClick={() => router.push("/admin/users/new")}
-            className="shrink-0"
+          <Dialog
+            open={isCreateOpen}
+            onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) {
+                resetCreateForm();
+              }
+            }}
           >
-            <Plus size={20} className="mr-2" />
-            Add User
-          </Button>
+            <DialogTrigger asChild>
+              <Button variant="default" className="shrink-0">
+                <Plus size={20} className="mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add New User</DialogTitle>
+                <DialogDescription>
+                  Create a team member account with a role and login credentials.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateUser} className="space-y-4 mt-4">
+                {createError && (
+                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    {createError}
+                  </div>
+                )}
+
+                <Input
+                  label="Email"
+                  type="email"
+                  placeholder="user@example.com"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Name"
+                  type="text"
+                  placeholder="Jane Doe"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                />
+
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="********"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  required
+                />
+
+                <Select
+                  label="Role"
+                  value={createRole}
+                  onChange={(value) => setCreateRole(value as "ADMIN" | "STAFF")}
+                  options={[
+                    { value: "STAFF", label: "Staff" },
+                    { value: "ADMIN", label: "Admin" },
+                  ]}
+                />
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsCreateOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="default"
+                    isLoading={isCreating}
+                    disabled={!createEmail || !createPassword}
+                  >
+                    Create User
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -140,6 +283,9 @@ export function UsersPageContent() {
                       </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">
                         Role
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Tickets
                       </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">
                         Status
@@ -189,6 +335,21 @@ export function UsersPageContent() {
                               className="w-32"
                             />
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          <div className="font-medium text-gray-900">
+                            {user.ticketCounts.total} total
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            O: {user.ticketCounts.OPEN} · P: {user.ticketCounts.IN_PROGRESS} · R:{" "}
+                            {user.ticketCounts.RESOLVED} · C: {user.ticketCounts.CLOSED}
+                          </div>
+                          <Link
+                            href={`/tickets?assignedTo=${user.id}`}
+                            className={buttonVariants({ variant: "link", size: "sm" })}
+                          >
+                            View tickets
+                          </Link>
                         </td>
                         <td className="py-3 px-4">
                           <Badge

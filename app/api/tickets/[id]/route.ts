@@ -17,6 +17,7 @@ export async function GET(
       );
     }
 
+    const isAdmin = (user as any).role === "ADMIN";
     const ticket = await prisma.ticket.findUnique({
       where: { id },
       include: {
@@ -35,6 +36,17 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: "Ticket not found" },
         { status: 404 },
+      );
+    }
+
+    if (
+      !isAdmin &&
+      ticket.createdById !== (user as any).id &&
+      ticket.assignedToId !== (user as any).id
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -62,6 +74,7 @@ export async function PATCH(
       );
     }
 
+    const isAdmin = (user as any).role === "ADMIN";
     const ticket = await prisma.ticket.findUnique({
       where: { id },
     });
@@ -73,6 +86,17 @@ export async function PATCH(
       );
     }
 
+    if (
+      !isAdmin &&
+      ticket.createdById !== (user as any).id &&
+      ticket.assignedToId !== (user as any).id
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
+
     const body: UpdateTicketInput = await req.json();
     const updateData: any = {};
 
@@ -80,8 +104,15 @@ export async function PATCH(
     if (body.description !== undefined)
       updateData.description = body.description;
     if (body.priority !== undefined) updateData.priority = body.priority;
-    if (body.assignedToId !== undefined)
+    if (body.assignedToId !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { success: false, error: "Only admins can assign tickets" },
+          { status: 403 },
+        );
+      }
       updateData.assignedToId = body.assignedToId;
+    }
 
     if (body.status !== undefined) {
       updateData.status = body.status;
@@ -101,6 +132,18 @@ export async function PATCH(
           action: "status_changed",
           previousValue: ticket.status,
           newValue: body.status,
+        },
+      });
+    }
+
+    if (body.assignedToId !== undefined && ticket.assignedToId !== body.assignedToId) {
+      await prisma.activity.create({
+        data: {
+          ticketId: ticket.id,
+          userId: (user as any).id,
+          action: "assigned",
+          previousValue: ticket.assignedToId,
+          newValue: body.assignedToId,
         },
       });
     }

@@ -12,8 +12,8 @@ import {
   LayoutDashboard,
   Ticket,
   Users,
-  Settings,
-  Briefcase
+  Briefcase,
+  BarChart3
 } from "lucide-react";
 
 export function Sidebar() {
@@ -23,6 +23,7 @@ export function Sidebar() {
 
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Analytics", href: "/analytics", icon: BarChart3 },
     { label: "Tickets", href: "/tickets", icon: Ticket },
   ];
 
@@ -35,7 +36,7 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-4 top-4 z-50 rounded-lg bg-primary p-2 text-primary-foreground lg:hidden"
+        className="fixed left-3 top-3 z-50 rounded-lg bg-primary p-1.5 text-primary-foreground lg:hidden"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>

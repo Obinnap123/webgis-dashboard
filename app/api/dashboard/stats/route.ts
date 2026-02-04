@@ -13,6 +13,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const isAdmin = (user as any).role === "ADMIN";
+    const userScope = isAdmin
+      ? {}
+      : {
+          OR: [
+            { createdById: (user as any).id },
+            { assignedToId: (user as any).id },
+          ],
+        };
+
     const [
       totalTickets,
       openTickets,
@@ -24,15 +34,16 @@ export async function GET(req: NextRequest) {
       urgentPriority,
       recentTickets,
     ] = await Promise.all([
-      prisma.ticket.count(),
-      prisma.ticket.count({ where: { status: "OPEN" } }),
-      prisma.ticket.count({ where: { status: "IN_PROGRESS" } }),
-      prisma.ticket.count({ where: { status: "RESOLVED" } }),
-      prisma.ticket.count({ where: { priority: "LOW" } }),
-      prisma.ticket.count({ where: { priority: "MEDIUM" } }),
-      prisma.ticket.count({ where: { priority: "HIGH" } }),
-      prisma.ticket.count({ where: { priority: "URGENT" } }),
+      prisma.ticket.count({ where: userScope }),
+      prisma.ticket.count({ where: { ...userScope, status: "OPEN" } }),
+      prisma.ticket.count({ where: { ...userScope, status: "IN_PROGRESS" } }),
+      prisma.ticket.count({ where: { ...userScope, status: "RESOLVED" } }),
+      prisma.ticket.count({ where: { ...userScope, priority: "LOW" } }),
+      prisma.ticket.count({ where: { ...userScope, priority: "MEDIUM" } }),
+      prisma.ticket.count({ where: { ...userScope, priority: "HIGH" } }),
+      prisma.ticket.count({ where: { ...userScope, priority: "URGENT" } }),
       prisma.ticket.findMany({
+        where: userScope,
         take: 5,
         orderBy: { createdAt: "desc" },
         include: {
@@ -44,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate average resolution time (in hours)
     const resolvedTicketsWithTime = await prisma.ticket.findMany({
-      where: { status: "RESOLVED", resolvedAt: { not: null } },
+      where: { ...userScope, status: "RESOLVED", resolvedAt: { not: null } },
       select: { createdAt: true, resolvedAt: true },
     });
 

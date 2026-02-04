@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,21 +29,36 @@ interface Ticket extends TicketWithUser {
   activities: any[];
 }
 
+interface UserOption {
+  id: string;
+  name: string | null;
+  email: string;
+  isActive: boolean;
+}
+
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [status, setStatus] = useState<string>("OPEN");
   const [priority, setPriority] = useState<string>("MEDIUM");
+  const [assignedToId, setAssignedToId] = useState<string>("");
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [usersError, setUsersError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetchTicket();
-  }, [id]);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [id, isAdmin]);
 
   async function fetchTicket() {
     try {
@@ -53,12 +69,32 @@ export default function TicketDetailPage() {
         setTicket(data.data);
         setStatus(data.data.status);
         setPriority(data.data.priority);
+        setAssignedToId(data.data.assignedTo?.id || "");
       }
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
       setError("Failed to load ticket");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function fetchUsers() {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.data.filter((user: UserOption) => user.isActive));
+      } else {
+        if (response.status === 403) {
+          setUsersError("Only admins can assign tickets.");
+        } else {
+          setUsersError(data.error || "Unable to load users");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+      setUsersError("Unable to load users");
     }
   }
 
@@ -71,6 +107,9 @@ export default function TicketDetailPage() {
         status,
         priority,
       };
+      if (isAdmin) {
+        updateData.assignedToId = assignedToId || null;
+      }
 
       const response = await fetch(`/api/tickets/${id}`, {
         method: "PATCH",
@@ -273,6 +312,30 @@ export default function TicketDetailPage() {
                     className="mt-2"
                   />
                 </div>
+
+                {isAdmin && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Assigned To
+                    </p>
+                    {usersError ? (
+                      <p className="text-sm text-red-600">{usersError}</p>
+                    ) : (
+                      <Select
+                        value={assignedToId}
+                        onChange={(value) => setAssignedToId(value)}
+                        options={[
+                          { value: "", label: "Unassigned" },
+                          ...users.map((user) => ({
+                            value: user.id,
+                            label: user.name || user.email,
+                          })),
+                        ]}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button
