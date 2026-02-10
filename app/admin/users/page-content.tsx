@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
+import { UserTableSkeleton } from "./user-table-skeleton";
 
 interface User {
   id: string;
@@ -261,7 +262,7 @@ export function UsersPageContent() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">Loading users...</div>
+              <UserTableSkeleton />
             ) : error ? (
               <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
                 {error}

@@ -3,6 +3,8 @@ import { getAuthUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { CreateUserInput, ApiResponse } from "@/types";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { sendVerificationEmail } from "@/lib/mailer";
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +25,7 @@ export async function GET(req: NextRequest) {
           role: true,
           isActive: true,
           createdAt: true,
+          emailVerifiedAt: true, // Include for display if needed
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -61,6 +64,7 @@ export async function GET(req: NextRequest) {
         role: string;
         isActive: boolean;
         createdAt: Date;
+        emailVerifiedAt: Date | null;
       }) => ({
       ...user,
       ticketCounts:
@@ -118,12 +122,17 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
+    // Generate email verification token
+    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
+
     const newUser = await prisma.user.create({
       data: {
         email: body.email,
         name: body.name || null,
         password: hashedPassword,
         role: body.role || "STAFF",
+        isActive: false, // Explicitly set to false as per requirement
+        emailVerificationToken: emailVerificationToken,
       },
       select: {
         id: true,
@@ -132,7 +141,15 @@ export async function POST(req: NextRequest) {
         role: true,
         isActive: true,
         createdAt: true,
+        emailVerifiedAt: true,
       },
+    });
+
+    // Send verification email (placeholder)
+    await sendVerificationEmail({
+      to: newUser.email,
+      token: emailVerificationToken,
+      userName: newUser.name,
     });
 
     return NextResponse.json({ success: true, data: newUser }, { status: 201 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,25 @@ import { Input } from "@/components/ui/input";
 
 export function Header() {
   const { data: session } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      const response = await fetch("/api/notifications/unread-count");
+      const data = await response.json();
+      if (data.success) {
+        setUnreadCount(data.data.unreadCount);
+      }
+    }
+
+    // Fetch initially
+    fetchUnreadCount();
+
+    // Poll for new notifications every 30 seconds (adjust as needed)
+    const interval = setInterval(fetchUnreadCount, 30000); 
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [session?.user?.id]); // Re-fetch if user changes
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -38,7 +58,9 @@ export function Header() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive border-2 border-background" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive border-2 border-background" />
+            )}
           </Button>
 
           <div className="flex items-center gap-3 pl-4 border-l border-border">

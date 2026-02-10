@@ -9,6 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { CreateUserInput } from "@/types";
 import { ArrowLeft } from "lucide-react";
+import * as z from "zod";
+
+const createUserSchema = z.object({
+  email: z.string().email({ message: "Invalid email address" }),
+  name: z.string().optional(),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  role: z.enum(["ADMIN", "STAFF"], { message: "Invalid role selected" }),
+});
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -18,19 +26,35 @@ export default function NewUserPage() {
   const [role, setRole] = useState("STAFF");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setValidationErrors({});
     setIsLoading(true);
 
     try {
-      const userData: CreateUserInput = {
+      const validationResult = createUserSchema.safeParse({
         email,
-        name,
+        name: name || undefined,
         password,
         role: role as "ADMIN" | "STAFF",
-      };
+      });
+
+      if (!validationResult.success) {
+        const fieldErrors: Record<string, string> = {};
+        validationResult.error.errors.forEach((err) => {
+          if (err.path.length > 0) {
+            fieldErrors[err.path[0]] = err.message;
+          }
+        });
+        setValidationErrors(fieldErrors);
+        setIsLoading(false);
+        return;
+      }
+
+      const userData: CreateUserInput = validationResult.data;
 
       const response = await fetch("/api/users", {
         method: "POST",
@@ -88,6 +112,7 @@ export default function NewUserPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                error={validationErrors.email}
               />
 
               <Input
@@ -96,6 +121,7 @@ export default function NewUserPage() {
                 placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                error={validationErrors.name}
               />
 
               <Input
@@ -105,6 +131,7 @@ export default function NewUserPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                error={validationErrors.password}
               />
 
               <Select
@@ -115,6 +142,7 @@ export default function NewUserPage() {
                   { value: "STAFF", label: "Staff" },
                   { value: "ADMIN", label: "Admin" },
                 ]}
+                error={validationErrors.role}
               />
 
               <div className="flex gap-3 pt-4">
@@ -122,7 +150,7 @@ export default function NewUserPage() {
                   type="submit"
                   variant="default"
                   isLoading={isLoading}
-                  disabled={!email || !password}
+                  disabled={isLoading || Object.keys(validationErrors).length > 0}
                 >
                   Create User
                 </Button>

@@ -32,13 +32,16 @@ model User {
   name          String?
   password      String
   role          UserRole   @default(STAFF)
-  isActive      Boolean    @default(true)
+  isActive      Boolean    @default(false)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  emailVerifiedAt   DateTime?
+  emailVerificationToken String? @unique
   
   ticketsCreated Ticket[]   @relation("CreatedBy")
   ticketsAssigned Ticket[]  @relation("AssignedTo")
   activities    Activity[]
+  notifications Notification[] // Add this line
   
   @@index([email])
   @@index([role])
@@ -81,6 +84,20 @@ model Activity {
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  link      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([createdAt])
 }

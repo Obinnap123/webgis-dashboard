@@ -149,6 +149,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Create notification for admins
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN" },
+      select: { id: true },
+    });
+
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          message: `New ticket "${ticket.title}" created by ${user.name || user.email}.`,
+          link: `/tickets/${ticket.id}`,
+        },
+      });
+    }
+
     return NextResponse.json({ success: true, data: ticket }, { status: 201 });
   } catch (error) {
     console.error("Error creating ticket:", error);

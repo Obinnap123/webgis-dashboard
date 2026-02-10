@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { CreateTicketInput } from "@/types";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserOption {
     id: string;
@@ -86,6 +87,7 @@ export function NewTicketDialog() {
                 return;
             }
 
+            toast.success("Ticket created successfully!");
             // Refresh data
             setOpen(false);
             resetForm();

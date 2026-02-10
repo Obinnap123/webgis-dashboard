@@ -36,7 +36,10 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-3 top-3 z-50 rounded-lg bg-primary p-1.5 text-primary-foreground lg:hidden"
+        className={cn(
+          "fixed top-3 z-50 rounded-lg bg-primary p-1.5 text-primary-foreground lg:hidden transition-all duration-300 ease-in-out",
+          isOpen ? "left-[16.5rem]" : "left-3"
+        )}
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -138,7 +141,7 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-md lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
