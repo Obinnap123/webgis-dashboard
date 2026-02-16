@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const priority = searchParams.get("priority");
+    const query = searchParams.get("q")?.trim();
     const assignedTo = searchParams.get("assignedTo");
     const createdFrom = searchParams.get("createdFrom");
     const createdTo = searchParams.get("createdTo");
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const where: any = {};
+    const andConditions: any[] = [];
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
@@ -39,11 +41,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (query) {
+      andConditions.push({
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
     if (!isAdmin) {
-      where.OR = [
+      andConditions.push({
+        OR: [
         { createdById: (user as any).id },
         { assignedToId: (user as any).id },
-      ];
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [tickets, total] = await Promise.all([

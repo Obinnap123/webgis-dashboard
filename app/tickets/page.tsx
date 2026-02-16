@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,15 +43,16 @@ const getPriorityVariant = (priority: string) => {
 
 
 export default function TicketsPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<TicketWithUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<string>("");
   const [priority, setPriority] = useState<string>("");
+  const query = searchParams.get("q") || "";
 
   useEffect(() => {
     fetchTickets();
-  }, [status, priority]);
+  }, [status, priority, query]);
 
   async function fetchTickets() {
     setIsLoading(true);
@@ -59,6 +60,7 @@ export default function TicketsPage() {
       const params = new URLSearchParams();
       if (status) params.append("status", status);
       if (priority) params.append("priority", priority);
+      if (query) params.append("q", query);
 
       const response = await fetch(`/api/tickets?${params.toString()}`);
       const data = await response.json();
@@ -125,7 +127,9 @@ export default function TicketsPage() {
           <CardHeader>
             <CardTitle>All Tickets</CardTitle>
             <CardDescription>
-              Testing {tickets.length} total tickets
+              {query
+                ? `Showing ${tickets.length} result(s) for "${query}"`
+                : `${tickets.length} total tickets`}
             </CardDescription>
           </CardHeader>
           <CardContent>
