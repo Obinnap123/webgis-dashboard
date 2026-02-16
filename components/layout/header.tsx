@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -15,18 +15,36 @@ interface NotificationItem {
   createdAt: string;
 }
 
+interface SearchSuggestion {
+  id: string;
+  title: string;
+  status: string;
+}
+
 export function Header() {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const sessionUser = session?.user as
     | { id?: string; role?: string; email?: string | null; name?: string | null }
     | undefined;
   const sessionUserId = sessionUser?.id;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<
+    SearchSuggestion[]
+  >([]);
+  const [isSearchingTickets, setIsSearchingTickets] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeSearchInput, setActiveSearchInput] = useState<
+    "mobile" | "desktop" | null
+  >(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchNotifications() {
@@ -54,11 +72,76 @@ export function Header() {
       ) {
         setIsOpen(false);
       }
+
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (pathname === "/tickets") {
+      setSearchQuery(searchParams.get("q") || "");
+    }
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+
+    if (!query) {
+      setSearchSuggestions([]);
+      setIsSearchingTickets(false);
+      return;
+    }
+
+    let isCancelled = false;
+    const timeout = setTimeout(async () => {
+      setIsSearchingTickets(true);
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          limit: "6",
+          offset: "0",
+        });
+        const response = await fetch(`/api/tickets?${params.toString()}`);
+        if (!response.ok || isCancelled) return;
+
+        const data = await response.json();
+        if (!data.success || isCancelled) return;
+
+        const suggestions = Array.isArray(data.data?.tickets)
+          ? data.data.tickets.map(
+              (ticket: { id: string; title: string; status: string }) => ({
+                id: ticket.id,
+                title: ticket.title,
+                status: ticket.status,
+              }),
+            )
+          : [];
+
+        setSearchSuggestions(suggestions);
+      } catch {
+        if (!isCancelled) {
+          setSearchSuggestions([]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingTickets(false);
+        }
+      }
+    }, 220);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [searchQuery]);
 
   async function refreshNotifications() {
     const response = await fetch("/api/notifications");
@@ -100,31 +183,158 @@ export function Header() {
     }
   }
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    setIsSearchOpen(false);
+    if (!q) {
+      router.push("/tickets");
+      return;
+    }
+    router.push(`/tickets?q=${encodeURIComponent(q)}`);
+  }
+
+  function handleSearchInputChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+    input: "mobile" | "desktop",
+  ) {
+    setActiveSearchInput(input);
+    setSearchQuery(e.target.value);
+    setIsSearchOpen(true);
+  }
+
+  function handleSuggestionClick(ticketId: string) {
+    setIsSearchOpen(false);
+    router.push(`/tickets/${ticketId}`);
+  }
+
+  function handleViewAllResults() {
+    const q = searchQuery.trim();
+    setIsSearchOpen(false);
+    if (!q) {
+      router.push("/tickets");
+      return;
+    }
+    router.push(`/tickets?q=${encodeURIComponent(q)}`);
+  }
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 pl-14 md:px-6 md:pl-16 lg:pl-6">
-        <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center gap-4 flex-1" ref={searchRef}>
           {/* Search Bar - Compact on mobile, full on desktop */}
-          <div className="relative w-full max-w-[220px] md:hidden">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative w-full max-w-[220px] md:hidden"
+          >
+            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <div className="w-full">
               <Input
-                placeholder="Search..."
+                value={searchQuery}
+                onFocus={() => {
+                  setActiveSearchInput("mobile");
+                  if (searchQuery.trim()) setIsSearchOpen(true);
+                }}
+                onChange={(e) => handleSearchInputChange(e, "mobile")}
+                placeholder="Search tickets..."
                 className="pl-8 h-8 text-sm bg-muted/50 border-none focus-visible:bg-background"
               />
             </div>
-          </div>
-          <div className="relative w-full max-w-md hidden md:block">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            {isSearchOpen && activeSearchInput === "mobile" && (
+              <div className="absolute left-0 right-0 mt-1 rounded-lg border border-border bg-background shadow-lg z-40">
+                {isSearchingTickets ? (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">
+                    Searching...
+                  </p>
+                ) : searchSuggestions.length > 0 ? (
+                  <>
+                    {searchSuggestions.map((ticket) => (
+                      <button
+                        key={ticket.id}
+                        type="button"
+                        onClick={() => handleSuggestionClick(ticket.id)}
+                        className="w-full border-b border-border px-3 py-2 text-left hover:bg-muted/50 last:border-b-0"
+                      >
+                        <p className="text-sm text-foreground line-clamp-1">
+                          {ticket.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {ticket.status.replace("_", " ")}
+                        </p>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleViewAllResults}
+                      className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-muted/50"
+                    >
+                      View all results
+                    </button>
+                  </>
+                ) : (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">
+                    No matching tickets.
+                  </p>
+                )}
+              </div>
+            )}
+          </form>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative w-full max-w-md hidden md:block"
+          >
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <div className="w-full">
               <Input
-                placeholder="Search..."
+                value={searchQuery}
+                onFocus={() => {
+                  setActiveSearchInput("desktop");
+                  if (searchQuery.trim()) setIsSearchOpen(true);
+                }}
+                onChange={(e) => handleSearchInputChange(e, "desktop")}
+                placeholder="Search tickets..."
                 className="pl-8 h-9 bg-muted/50 border-none focus-visible:bg-background"
-              // Remove label/error wrapper logic if we want pure input, 
-              // but since we kept the wrapper in Input component, we pass no label/error.
               />
             </div>
-          </div>
+            {isSearchOpen && activeSearchInput === "desktop" && (
+              <div className="absolute left-0 right-0 mt-1 rounded-lg border border-border bg-background shadow-lg z-40">
+                {isSearchingTickets ? (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                    Searching...
+                  </p>
+                ) : searchSuggestions.length > 0 ? (
+                  <>
+                    {searchSuggestions.map((ticket) => (
+                      <button
+                        key={ticket.id}
+                        type="button"
+                        onClick={() => handleSuggestionClick(ticket.id)}
+                        className="w-full border-b border-border px-3 py-2 text-left hover:bg-muted/50 last:border-b-0"
+                      >
+                        <p className="text-sm text-foreground line-clamp-1">
+                          {ticket.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {ticket.status.replace("_", " ")}
+                        </p>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleViewAllResults}
+                      className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-muted/50"
+                    >
+                      View all results
+                    </button>
+                  </>
+                ) : (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                    No matching tickets.
+                  </p>
+                )}
+              </div>
+            )}
+          </form>
         </div>
 
         <div className="flex items-center gap-4">
