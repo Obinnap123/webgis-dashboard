@@ -1,15 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
-import { CreateUserInput, ApiResponse } from "@/types";
+import { CreateUserInput } from "@/types";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendVerificationEmail } from "@/lib/mailer";
+import { z } from "zod";
 
-export async function GET(req: NextRequest) {
+const createUserSchema = z.object({
+  email: z.string().trim().email("Please provide a valid email address"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(80, "Name is too long")
+    .optional()
+    .or(z.literal("")),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must include an uppercase letter")
+    .regex(/[a-z]/, "Password must include a lowercase letter")
+    .regex(/[0-9]/, "Password must include a number"),
+  role: z.enum(["ADMIN", "STAFF"]).optional(),
+});
+
+export async function GET() {
   try {
     const user = await getAuthUser();
-    if (!user || (user as any).role !== "ADMIN") {
+    const authUserRole = (user as { role?: string } | null)?.role;
+    if (!user || authUserRole !== "ADMIN") {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 403 },
@@ -91,25 +111,32 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
-    if (!user || (user as any).role !== "ADMIN") {
+    const authUserRole = (user as { role?: string } | null)?.role;
+    if (!user || authUserRole !== "ADMIN") {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 403 },
       );
     }
 
-    const body: CreateUserInput = await req.json();
+    const rawBody: CreateUserInput = await req.json();
+    const parsed = createUserSchema.safeParse(rawBody);
 
-    if (!body.email || !body.password) {
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Invalid input";
       return NextResponse.json(
-        { success: false, error: "Email and password are required" },
+        { success: false, error: firstError },
         { status: 400 },
       );
     }
 
+    const input = parsed.data;
+    const normalizedEmail = input.email.toLowerCase();
+    const normalizedName = input.name?.trim() || null;
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: body.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -120,17 +147,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const hashedPassword = await bcrypt.hash(input.password, 10);
 
     // Generate email verification token
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
 
     const newUser = await prisma.user.create({
       data: {
-        email: body.email,
-        name: body.name || null,
+        email: normalizedEmail,
+        name: normalizedName,
         password: hashedPassword,
-        role: body.role || "STAFF",
+        role: input.role || "STAFF",
         isActive: false, // Explicitly set to false as per requirement
         emailVerificationToken: emailVerificationToken,
       },
@@ -145,14 +172,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send verification email (placeholder)
-    await sendVerificationEmail({
+    const emailResult = await sendVerificationEmail({
       to: newUser.email,
       token: emailVerificationToken,
       userName: newUser.name,
     });
 
-    return NextResponse.json({ success: true, data: newUser }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: newUser,
+        meta: { verificationEmailSent: emailResult.sent },
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error creating user:", error);
     return NextResponse.json(

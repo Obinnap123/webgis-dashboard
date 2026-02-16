@@ -44,9 +44,9 @@ export default function NewUserPage() {
 
       if (!validationResult.success) {
         const fieldErrors: Record<string, string> = {};
-        validationResult.error.errors.forEach((err) => {
+        validationResult.error.issues.forEach((err) => {
           if (err.path.length > 0) {
-            fieldErrors[err.path[0]] = err.message;
+            fieldErrors[String(err.path[0])] = err.message;
           }
         });
         setValidationErrors(fieldErrors);
@@ -70,8 +70,9 @@ export default function NewUserPage() {
       }
 
       router.push("/admin/users");
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An error occurred";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

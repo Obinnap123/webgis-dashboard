@@ -203,5 +203,5 @@ export interface CreateUserInput {
   email: string;
   name?: string;
   password: string;
-  role?: string;
+  role?: "ADMIN" | "STAFF";
 }

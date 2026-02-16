@@ -18,6 +18,9 @@ import {
 
 export function Sidebar() {
   const { data: session } = useSession();
+  const sessionUser = session?.user as
+    | { role?: string; email?: string | null }
+    | undefined;
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -29,33 +32,40 @@ export function Sidebar() {
 
   const adminItems = [{ label: "Users", href: "/admin/users", icon: Users }];
 
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const isAdmin = sessionUser?.role === "ADMIN";
 
   return (
     <>
       {/* Mobile menu button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed top-3 z-50 rounded-lg bg-primary p-1.5 text-primary-foreground lg:hidden transition-all duration-300 ease-in-out",
-          isOpen ? "left-[16.5rem]" : "left-3"
-        )}
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed left-3 top-3 z-50 rounded-lg bg-primary p-1.5 text-primary-foreground shadow-sm lg:hidden"
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
       {/* Sidebar - Modern SaaS Style */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen w-64 transform border-r border-border bg-card text-card-foreground transition-transform duration-300 lg:translate-x-0 hidden lg:flex flex-col",
-          isOpen ? "translate-x-0 flex" : "-translate-x-full"
+          "fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-card text-card-foreground transition-transform duration-300",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex h-16 items-center border-b border-border px-6">
+        <div className="flex h-16 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-2 font-bold text-xl text-primary">
             <Briefcase className="h-6 w-6" />
             <span>TicketHub</span>
           </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="flex-1 flex flex-col gap-6 p-4">
@@ -123,7 +133,7 @@ export function Sidebar() {
                 {session?.user?.email}
               </span>
               <span className="truncate text-xs text-muted-foreground capitalize">
-                {(session?.user as any)?.role?.toLowerCase() || 'User'}
+                {sessionUser?.role?.toLowerCase() || "User"}
               </span>
             </div>
           </div>

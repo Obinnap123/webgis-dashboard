@@ -149,17 +149,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create notification for admins
+    // Notify active admins when a new ticket is created.
     const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
+      where: { role: "ADMIN", isActive: true },
       select: { id: true },
     });
 
-    for (const admin of admins) {
-      await prisma.notification.create({
-        data: {
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin: { id: string }) => ({
           userId: admin.id,
           message: `New ticket "${ticket.title}" created by ${user.name || user.email}.`,
+          link: `/tickets/${ticket.id}`,
+        })),
+      });
+    }
+
+    if (assignedToId) {
+      await prisma.notification.create({
+        data: {
+          userId: assignedToId,
+          message: `You were assigned ticket "${ticket.title}" by ${user.name || user.email}.`,
           link: `/tickets/${ticket.id}`,
         },
       });

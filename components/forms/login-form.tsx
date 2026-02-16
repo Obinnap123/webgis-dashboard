@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,8 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const verificationStatus = searchParams.get("verification");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,8 +34,9 @@ export function LoginForm() {
       }
 
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An error occurred";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +53,27 @@ export function LoginForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {verificationStatus === "success" && (
+              <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                Email verified successfully. You can now sign in.
+              </div>
+            )}
+            {verificationStatus === "already" && (
+              <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                This email is already verified. Please sign in.
+              </div>
+            )}
+            {verificationStatus === "invalid" && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                Verification link is invalid or expired.
+              </div>
+            )}
+            {verificationStatus === "error" && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                Verification failed. Please request a new link.
+              </div>
+            )}
+
             {error && (
               <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
                 {error}

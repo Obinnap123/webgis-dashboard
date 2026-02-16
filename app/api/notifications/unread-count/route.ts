@@ -1,9 +1,9 @@
 // app/api/notifications/unread-count/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const user = await getAuthUser();
     if (!user) {
@@ -12,10 +12,11 @@ export async function GET(req: NextRequest) {
         { status: 401 },
       );
     }
+    const userId = (user as { id: string }).id;
 
     const unreadCount = await prisma.notification.count({
       where: {
-        userId: user.id,
+        userId,
         read: false,
       },
     });

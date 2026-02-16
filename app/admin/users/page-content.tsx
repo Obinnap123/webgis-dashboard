@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
 import { UserTableSkeleton } from "./user-table-skeleton";
+import { z } from "zod";
 
 interface User {
   id: string;
@@ -36,6 +37,24 @@ interface User {
   };
 }
 
+const createUserSchema = z.object({
+  email: z.string().trim().email("Please provide a valid email address"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(80, "Name is too long")
+    .optional()
+    .or(z.literal("")),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must include an uppercase letter")
+    .regex(/[a-z]/, "Password must include a lowercase letter")
+    .regex(/[0-9]/, "Password must include a number"),
+  role: z.enum(["ADMIN", "STAFF"]),
+});
+
 export function UsersPageContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +66,11 @@ export function UsersPageContent() {
   const [createPassword, setCreatePassword] = useState("");
   const [createRole, setCreateRole] = useState<"ADMIN" | "STAFF">("STAFF");
   const [createError, setCreateError] = useState("");
+  const [createFieldErrors, setCreateFieldErrors] = useState<
+    Record<string, string>
+  >({});
   const [isCreating, setIsCreating] = useState(false);
+  const [createNotice, setCreateNotice] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -122,22 +145,45 @@ export function UsersPageContent() {
     setCreatePassword("");
     setCreateRole("STAFF");
     setCreateError("");
+    setCreateFieldErrors({});
   }
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
     setCreateError("");
+    setCreateFieldErrors({});
     setIsCreating(true);
 
     try {
+      const validation = createUserSchema.safeParse({
+        email: createEmail,
+        name: createName,
+        password: createPassword,
+        role: createRole,
+      });
+
+      if (!validation.success) {
+        const errors: Record<string, string> = {};
+        validation.error.issues.forEach((issue) => {
+          const field = String(issue.path[0] || "");
+          if (field && !errors[field]) {
+            errors[field] = issue.message;
+          }
+        });
+        setCreateFieldErrors(errors);
+        return;
+      }
+
+      const payload = validation.data;
+
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: createEmail,
-          name: createName || null,
-          password: createPassword,
-          role: createRole,
+          email: payload.email.trim().toLowerCase(),
+          name: payload.name?.trim() || null,
+          password: payload.password,
+          role: payload.role,
         }),
       });
 
@@ -146,6 +192,14 @@ export function UsersPageContent() {
       if (!data.success) {
         setCreateError(data.error || "Failed to create user");
         return;
+      }
+
+      if (data?.meta?.verificationEmailSent) {
+        setCreateNotice("User created and verification email sent.");
+      } else {
+        setCreateNotice(
+          "User created. Verification email not sent (configure RESEND_API_KEY).",
+        );
       }
 
       setIsCreateOpen(false);
@@ -204,6 +258,7 @@ export function UsersPageContent() {
                   placeholder="user@example.com"
                   value={createEmail}
                   onChange={(e) => setCreateEmail(e.target.value)}
+                  error={createFieldErrors.email}
                   required
                 />
 
@@ -213,6 +268,7 @@ export function UsersPageContent() {
                   placeholder="Jane Doe"
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
+                  error={createFieldErrors.name}
                 />
 
                 <Input
@@ -221,6 +277,7 @@ export function UsersPageContent() {
                   placeholder="********"
                   value={createPassword}
                   onChange={(e) => setCreatePassword(e.target.value)}
+                  error={createFieldErrors.password}
                   required
                 />
 
@@ -232,7 +289,12 @@ export function UsersPageContent() {
                     { value: "STAFF", label: "Staff" },
                     { value: "ADMIN", label: "Admin" },
                   ]}
+                  error={createFieldErrors.role}
                 />
+
+                <p className="text-xs text-muted-foreground">
+                  New users stay inactive until they verify their email.
+                </p>
 
                 <div className="flex justify-end gap-3 pt-2">
                   <Button
@@ -261,6 +323,11 @@ export function UsersPageContent() {
             <CardTitle>All Users ({users.length})</CardTitle>
           </CardHeader>
           <CardContent>
+            {createNotice && (
+              <div className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+                {createNotice}
+              </div>
+            )}
             {isLoading ? (
               <UserTableSkeleton />
             ) : error ? (

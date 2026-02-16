@@ -111,6 +111,21 @@ export async function PATCH(
           { status: 403 },
         );
       }
+
+      if (body.assignedToId !== null) {
+        const assignee = await prisma.user.findUnique({
+          where: { id: body.assignedToId },
+          select: { id: true, isActive: true },
+        });
+
+        if (!assignee || !assignee.isActive) {
+          return NextResponse.json(
+            { success: false, error: "Assigned user not found or inactive" },
+            { status: 400 },
+          );
+        }
+      }
+
       updateData.assignedToId = body.assignedToId;
     }
 
@@ -146,6 +161,16 @@ export async function PATCH(
           newValue: body.assignedToId,
         },
       });
+
+      if (body.assignedToId) {
+        await prisma.notification.create({
+          data: {
+            userId: body.assignedToId,
+            message: `You were assigned ticket "${ticket.title}" by ${user.name || user.email}.`,
+            link: `/tickets/${ticket.id}`,
+          },
+        });
+      }
     }
 
     const updated = await prisma.ticket.update({
